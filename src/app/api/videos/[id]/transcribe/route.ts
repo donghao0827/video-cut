@@ -8,20 +8,17 @@ import { FormData } from 'formdata-node';
 import { fileFromPath } from 'formdata-node/file-from-path';
 import { getFileFromObs } from '@/lib/storage/obsClient';
 
-interface RequestParams {
-  params: {
-    id: string;
-  };
-}
-
 // OpenAI API密钥，应从环境变量获取
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function POST(req: NextRequest, { params }: RequestParams) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     await connectToDatabase();
     
-    const { id } = params;
+    const { id } = await params;
     
     // Find video
     const video = await Video.findById(id);

@@ -3,17 +3,14 @@ import connectToDatabase from '@/lib/db/mongodb';
 import { Video } from '@/lib/db/models/video';
 import { v4 as uuidv4 } from 'uuid';
 
-interface RequestParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(req: NextRequest, { params }: RequestParams) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     await connectToDatabase();
     
-    const { id } = params;
+    const { id } = await params;
     const { startTime, endTime } = await req.json();
     
     // Find video

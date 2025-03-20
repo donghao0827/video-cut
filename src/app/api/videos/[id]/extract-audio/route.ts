@@ -6,17 +6,14 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { uploadToObs } from '@/lib/storage/obsClient';
 
-interface RequestParams {
-  params: {
-    id: string;
-  };
-}
-
-export async function POST(req: NextRequest, { params }: RequestParams) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     await connectToDatabase();
     
-    const { id } = params;
+    const { id } = await params;
     
     // Find video
     const video = await Video.findById(id);
