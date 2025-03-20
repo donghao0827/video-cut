@@ -42,7 +42,8 @@ declare module 'esdk-obs-nodejs' {
     constructor(config: ObsConfig);
     putObject(params: PutObjectParams): Promise<ObsResponse>;
     getObject(params: GetObjectParams): Promise<ObsResponse>;
-    createSignedUrl(params: CreateTempUrlParams): Promise<ObsResponse>;
+    createTemporarySignedUrl(params: CreateTempUrlParams): Promise<ObsResponse>;
+    createSignedUrlSync(params: CreateTempUrlParams): { SignedUrl: string };
   }
 
   export default ObsClient;

@@ -30,10 +30,10 @@ export function getObsClient(): ObsClient {
  * @param expires 过期时间（秒）
  * @returns 临时访问URL
  */
-export async function createTemporaryUrl(
+export function createTemporaryUrl(
   key: string,
   expires: number = defaultExpires
-): Promise<string> {
+): string {
   if (!accessKeyId || !secretAccessKey || !server || !bucketName) {
     throw new Error('OBS configuration missing');
   }
@@ -41,17 +41,18 @@ export async function createTemporaryUrl(
   const obsClient = getObsClient();
   
   try {
-    const result = await obsClient.createSignedUrl({
+    // 使用同步方法创建临时URL
+    const result = obsClient.createSignedUrlSync({
       Method: 'GET',
       Bucket: bucketName,
       Key: key,
       Expires: expires
     });
     
-    if (result.CommonMsg.Status < 300 && result.InterfaceResult.SignedUrl) {
-      return result.InterfaceResult.SignedUrl;
+    if (result && result.SignedUrl) {
+      return result.SignedUrl;
     } else {
-      throw new Error(`Failed to create temporary URL: ${result.CommonMsg.Message}`);
+      throw new Error('Failed to create temporary URL');
     }
   } catch (error) {
     console.error('Failed to create temporary URL:', error);
@@ -98,7 +99,7 @@ export async function uploadToObs(
     if (result.CommonMsg.Status < 300) {
       if (useTemporaryUrl) {
         // 返回临时访问URL
-        return await createTemporaryUrl(key);
+        return createTemporaryUrl(key);
       } else {
         // 返回永久URL
         return `https://${bucketName}.${server.replace('https://', '')}/${key}`;
