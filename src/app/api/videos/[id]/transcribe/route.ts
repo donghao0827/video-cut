@@ -42,15 +42,24 @@ export async function POST(
     await video.save();
     
     try {
-      // 检查环境变量中是否配置了OBS
-      const useObs = process.env.HW_ACCESS_KEY_ID && process.env.HW_SECRET_ACCESS_KEY && 
-                    process.env.HW_OBS_ENDPOINT && process.env.HW_OBS_BUCKET;
+      // 获取存储模式配置
+      const storageMode = process.env.STORAGE_MODE || 'local';
+      
+      // 检查是否配置了OBS
+      const obsConfigured = process.env.HW_ACCESS_KEY_ID && 
+                           process.env.HW_SECRET_ACCESS_KEY && 
+                           process.env.HW_OBS_ENDPOINT && 
+                           process.env.HW_OBS_BUCKET;
+      
+      // 决定使用哪种存储方式 - 加入检查当前音频URL是否已经在OBS中
+      const useObs = storageMode === 'obs' && obsConfigured;
+      const audioIsInObs = video.audioUrl.startsWith('http');
       
       // 临时文件路径，用于处理从OBS下载的音频文件
       const tempAudioPath = join(process.cwd(), 'tmp', `temp-${Date.now()}.mp3`);
       let audioBuffer: Buffer;
       
-      if (useObs && video.audioUrl.startsWith('http')) {
+      if (useObs && audioIsInObs) {
         // 从OBS获取音频文件
         audioBuffer = await getFileFromObs(video.audioUrl);
         
@@ -83,7 +92,7 @@ export async function POST(
           const formData = new FormData();
           
           // 根据是否使用OBS选择文件添加方式
-          if (useObs && video.audioUrl.startsWith('http')) {
+          if (useObs && audioIsInObs) {
             formData.append('file', await fileFromPath(tempAudioPath));
             
             // 处理完成后删除临时文件

@@ -55,9 +55,17 @@ export async function POST(req: NextRequest) {
     const fileExt = videoFile.name.split('.').pop();
     const fileName = `${uuidv4()}.${fileExt}`;
     
-    // 检查环境变量中是否配置了OBS
-    const useObs = process.env.HW_ACCESS_KEY_ID && process.env.HW_SECRET_ACCESS_KEY && 
-                  process.env.HW_OBS_ENDPOINT && process.env.HW_OBS_BUCKET;
+    // 获取存储模式配置
+    const storageMode = process.env.STORAGE_MODE || 'local';
+    
+    // 检查是否配置了OBS
+    const obsConfigured = process.env.HW_ACCESS_KEY_ID && 
+                         process.env.HW_SECRET_ACCESS_KEY && 
+                         process.env.HW_OBS_ENDPOINT && 
+                         process.env.HW_OBS_BUCKET;
+    
+    // 决定使用哪种存储方式
+    const useObs = storageMode === 'obs' && obsConfigured;
     
     let videoUrl = '';
     
@@ -66,7 +74,7 @@ export async function POST(req: NextRequest) {
       const buffer = Buffer.from(await videoFile.arrayBuffer());
       videoUrl = await uploadToObs(buffer, fileName, videoFile.type);
     } else {
-      // 使用本地存储作为备选
+      // 使用本地存储
       const uploadDir = await ensureUploadDir();
       const filePath = join(uploadDir, fileName);
       const buffer = Buffer.from(await videoFile.arrayBuffer());

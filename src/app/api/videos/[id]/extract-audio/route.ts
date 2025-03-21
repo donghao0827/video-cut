@@ -41,9 +41,17 @@ export async function POST(
       // Generate a new filename for the extracted audio
       const fileName = `audio-${uuidv4()}.mp3`;
       
-      // 检查环境变量中是否配置了OBS
-      const useObs = process.env.HW_ACCESS_KEY_ID && process.env.HW_SECRET_ACCESS_KEY && 
-                    process.env.HW_OBS_ENDPOINT && process.env.HW_OBS_BUCKET;
+      // 获取存储模式配置
+      const storageMode = process.env.STORAGE_MODE || 'local';
+      
+      // 检查是否配置了OBS
+      const obsConfigured = process.env.HW_ACCESS_KEY_ID && 
+                           process.env.HW_SECRET_ACCESS_KEY && 
+                           process.env.HW_OBS_ENDPOINT && 
+                           process.env.HW_OBS_BUCKET;
+      
+      // 决定使用哪种存储方式
+      const useObs = storageMode === 'obs' && obsConfigured;
       
       let audioUrl = '';
       
@@ -52,7 +60,7 @@ export async function POST(
         const buffer = Buffer.from(await audioFile.arrayBuffer());
         audioUrl = await uploadToObs(buffer, fileName, 'audio/mp3');
       } else {
-        // 使用本地存储作为备选
+        // 使用本地存储
         const filePath = join(process.cwd(), 'public', 'uploads', fileName);
         const buffer = Buffer.from(await audioFile.arrayBuffer());
         await writeFile(filePath, buffer);
