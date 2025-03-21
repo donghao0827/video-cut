@@ -41,7 +41,7 @@ export default function VideoUploader() {
       formData.append('title', title);
       if (description) formData.append('description', description);
       
-      const response = await axios.post('/api/videos', formData, {
+      const response = await axios.post('/api/videos/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

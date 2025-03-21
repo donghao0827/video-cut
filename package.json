@@ -2,13 +2,13 @@
   "name": "video-cut",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "download-ffmpeg": "node scripts/download-ffmpeg.js"
+    "download-ffmpeg": "node scripts/download-ffmpeg.js",
+    "process-tasks": "node scripts/start-task-processor.js"
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
@@ -16,17 +16,22 @@
     "@ffmpeg/util": "^0.12.2",
     "@headlessui/react": "^2.2.0",
     "@radix-ui/react-slider": "^1.2.3",
+    "@types/dotenv": "^8.2.3",
+    "@types/formidable": "^3.4.5",
     "@types/uuid": "^10.0.0",
     "axios": "^1.8.3",
     "esdk-obs-nodejs": "^3.24.3",
     "ffmpeg-static": "^5.2.0",
+    "form-data": "^4.0.2",
     "formdata-node": "^6.0.3",
+    "formidable": "^3.5.2",
     "mongodb": "^6.14.2",
     "mongoose": "^8.12.1",
     "next": "15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
+    "react-icons": "^5.5.0",
     "uuid": "^11.1.0",
     "zustand": "^5.0.3"
   },

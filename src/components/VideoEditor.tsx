@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useVideoStore } from '@/lib/store/videoStore';
-import AudioExtractor from './AudioExtractor';
-import TranscriptViewer from './TranscriptViewer';
+// import AudioExtractor from './AudioExtractor';
+// import TranscriptViewer from './TranscriptViewer';
+import VideoProcessor from './VideoProcessor';
+import VideoPlayer from './VideoPlayer';
 
 export default function VideoEditor({ videoId }: { videoId: string }) {
   const { videos, updateVideo, setError } = useVideoStore();
@@ -77,12 +79,22 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
       <h2 className="text-xl font-bold mb-4">Edit Video</h2>
       
       <div className="mb-4">
-        <video 
-          ref={videoRef}
-          src={`${video.originalUrl}`} 
-          controls 
-          className="w-full rounded-md"
-        />
+        {/* 根据是否有字幕条件渲染不同的视频播放器 */}
+        {video.hasSubtitles && video.subtitles && video.url ? (
+          <VideoPlayer 
+            videoUrl={video.url} 
+            subtitleUrl={video.subtitleUrl}
+            title={video.title}
+          />
+        ) : (
+          <video 
+            ref={videoRef}
+            src={`${video.url}`} 
+            controls 
+            className="w-full rounded-md"
+            data-video-id={videoId}
+          />
+        )}
       </div>
       
       <div className="mb-6">
@@ -147,9 +159,13 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         </div>
       )}
       
-      <AudioExtractor videoId={videoId} />
-      
-      <TranscriptViewer videoId={videoId} videoRef={videoRef} />
+      <div className="mt-6 border-t pt-4">
+        <h3 className="text-lg font-medium mb-2">一键处理</h3>
+        <p className="text-sm text-gray-600 mb-2">
+          使用此功能可以一次性完成音频提取和字幕识别。
+        </p>
+        <VideoProcessor videoId={videoId} />
+      </div>
     </div>
   );
 } 

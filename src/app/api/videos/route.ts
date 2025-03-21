@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db/mongodb';
-import { Video } from '@/lib/db/models/video';
+import Video from '@/lib/db/models/video';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
     const video = await Video.create({
       title,
       description,
+      url: videoUrl,
       originalUrl: videoUrl,
       status: 'uploaded',
     });

@@ -1,56 +1,63 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Model } from 'mongoose';
 
-// 定义时间戳段落接口
-export interface ITimestamp {
-  start: number;
-  end: number;
+// 字幕时间戳接口
+export interface ISubtitle {
+  start: string;
+  end: string;
   text: string;
 }
 
-// Define the interface for Video document
-export interface IVideo extends Document {
+// 视频接口
+export interface IVideo {
   title: string;
   description?: string;
-  originalUrl: string;
-  editedUrl?: string;
-  audioUrl?: string;
+  url?: string;
   thumbnailUrl?: string;
-  duration?: number;
-  userId?: string;
-  transcript?: string;
-  timestamps?: ITimestamp[];
-  status: 'uploaded' | 'processing' | 'ready' | 'error';
+  subtitles?: ISubtitle[];
+  audioUrl?: string;
+  obsAudioUrl?: string;
+  hasSubtitles?: boolean;
+  subtitleUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Define the video schema
-const VideoSchema = new Schema<IVideo>(
+// 视频文档接口，包含MongoDB文档的方法
+export interface IVideoDocument extends IVideo, mongoose.Document {}
+
+// 视频模式Schema定义
+const VideoSchema = new Schema<IVideoDocument>(
   {
     title: { type: String, required: true },
     description: { type: String },
-    originalUrl: { type: String, required: true },
-    editedUrl: { type: String },
-    audioUrl: { type: String },
+    url: { type: String },
     thumbnailUrl: { type: String },
-    duration: { type: Number },
-    userId: { type: String },
-    transcript: { type: String },
-    timestamps: [{ 
-      start: Number,
-      end: Number,
-      text: String
-    }],
-    status: {
-      type: String,
-      enum: ['uploaded', 'processing', 'ready', 'error'],
-      default: 'uploaded',
-    },
+    subtitles: [
+      {
+        start: { type: Number, required: true },
+        end: { type: Number, required: true },
+        text: { type: String, required: true },
+      },
+    ],
+    audioUrl: { type: String },
+    obsAudioUrl: { type: String },
+    hasSubtitles: { type: Boolean, default: false },
+    subtitleUrl: { type: String },
   },
-  { timestamps: true }
+  {
+    timestamps: true, // 添加 createdAt 和 updatedAt 字段
+  }
 );
 
-// Check if model already exists to prevent overwrite during hot reloading
-export const Video = mongoose.models.Video || mongoose.model<IVideo>('Video', VideoSchema);
+// 检查模型是否已经被定义
+let VideoModel: Model<IVideoDocument>;
 
-export default Video; 
+try {
+  // 尝试获取现有模型
+  VideoModel = mongoose.model<IVideoDocument>('Video');
+} catch {
+  // 如果模型不存在，创建新模型
+  VideoModel = mongoose.model<IVideoDocument>('Video', VideoSchema);
+}
+
+export default VideoModel;

@@ -1,0 +1,109 @@
+import { useState, useRef, useEffect } from 'react';
+import { ISubtitle } from '@/lib/db/models/video';
+
+interface VideoPlayerProps {
+  videoUrl: string;
+  subtitles?: ISubtitle[];
+  title?: string;
+}
+
+export default function VideoPlayer({ videoUrl, subtitles, title }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const [currentSubtitle, setCurrentSubtitle] = useState<string>('');
+  
+  // 监听视频时间更新，显示对应的字幕
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      
+      // 查找当前时间对应的字幕
+      if (subtitles && subtitles.length > 0) {
+        const currentSub = subtitles.find(
+          sub => video.currentTime >= sub.start && video.currentTime <= sub.end
+        );
+        
+        setCurrentSubtitle(currentSub ? currentSub.text : '');
+      }
+    };
+    
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [subtitles]);
+  
+  return (
+    <div className="relative w-full bg-black rounded-lg overflow-hidden">
+      {/* 视频标题 */}
+      {title && (
+        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/70 to-transparent z-10 text-white">
+          <h3 className="font-medium">{title}</h3>
+        </div>
+      )}
+      
+      {/* 视频播放器 */}
+      <div className="relative w-full">
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="w-full rounded-lg"
+          controls={showControls}
+          controlsList="nodownload"
+        />
+        
+        {/* 字幕显示区域 */}
+        {currentSubtitle && (
+          <div className="absolute bottom-14 left-0 right-0 text-center px-4 py-2">
+            <div className="inline-block bg-black/70 text-white px-4 py-2 rounded-lg text-lg max-w-[90%]">
+              {currentSubtitle}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* 字幕列表 */}
+      {subtitles && subtitles.length > 0 && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg max-h-60 overflow-y-auto">
+          <h3 className="font-medium mb-2">字幕列表</h3>
+          <div className="space-y-2">
+            {subtitles.map((subtitle, index) => (
+              <div
+                key={index}
+                className={`p-2 rounded-md cursor-pointer transition-colors ${
+                  currentTime >= subtitle.start && currentTime <= subtitle.end
+                    ? 'bg-blue-100'
+                    : 'hover:bg-gray-100'
+                }`}
+                onClick={() => {
+                  if (videoRef.current) {
+                    videoRef.current.currentTime = subtitle.start;
+                    videoRef.current.play();
+                  }
+                }}
+              >
+                <div className="flex items-center">
+                  <span className="text-gray-500 text-sm mr-2">
+                    {formatTime(subtitle.start)}
+                  </span>
+                  <span>{subtitle.text}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 格式化时间为 MM:SS 格式
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+} 
