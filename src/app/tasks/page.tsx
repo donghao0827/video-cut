@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import { Table, Tag, Button, Space, Select, message, Typography, Card } from 'antd';
+import { SyncOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Title } = Typography;
+const { Option } = Select;
 
 // 格式化日期
 const formatDate = (dateString: string) => {
@@ -24,12 +30,12 @@ const taskTypeNames = {
   'transcription': '转录任务'
 };
 
-// 任务状态显示名称及样式
+// 任务状态样式配置
 const taskStatusConfig = {
-  'pending': { name: '等待处理', className: 'bg-yellow-100 text-yellow-800' },
-  'processing': { name: '处理中', className: 'bg-blue-100 text-blue-800' },
-  'completed': { name: '已完成', className: 'bg-green-100 text-green-800' },
-  'failed': { name: '失败', className: 'bg-red-100 text-red-800' }
+  'pending': { name: '等待处理', color: 'warning' },
+  'processing': { name: '处理中', color: 'processing' },
+  'completed': { name: '已完成', color: 'success' },
+  'failed': { name: '失败', color: 'error' }
 };
 
 interface Task {
@@ -47,7 +53,6 @@ interface Task {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   
@@ -55,7 +60,6 @@ export default function TasksPage() {
   const loadTasks = async () => {
     try {
       setLoading(true);
-      setError(null);
       
       // 构建查询参数
       const params = new URLSearchParams();
@@ -67,7 +71,7 @@ export default function TasksPage() {
       setTasks(response.data.tasks);
     } catch (err) {
       console.error('Error loading tasks:', err);
-      setError('加载任务失败，请刷新页面重试');
+      message.error('加载任务失败，请刷新页面重试');
     } finally {
       setLoading(false);
     }
@@ -82,139 +86,132 @@ export default function TasksPage() {
   const handleProcessTask = async (taskId: string) => {
     try {
       await axios.post(`/api/tasks/${taskId}/process`);
+      message.success('任务处理已提交');
       await loadTasks(); // 重新加载任务列表
     } catch (err) {
       console.error('Error processing task:', err);
-      setError('处理任务失败，请重试');
+      message.error('处理任务失败，请重试');
     }
   };
+
+  // 表格列定义
+  const columns: ColumnsType<Task> = [
+    {
+      title: '任务类型',
+      dataIndex: 'type',
+      key: 'type',
+      render: (type) => taskTypeNames[type as keyof typeof taskTypeNames] || type,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={taskStatusConfig[status as keyof typeof taskStatusConfig].color}>
+          {taskStatusConfig[status as keyof typeof taskStatusConfig].name}
+        </Tag>
+      ),
+    },
+    {
+      title: '视频ID',
+      dataIndex: 'videoId',
+      key: 'videoId',
+      render: (videoId, record) => (
+        <>
+          <Link href={`${record.mediaUrl}`} style={{ color: '#1890ff' }}>
+            {videoId}
+          </Link>
+        </>
+      ),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => formatDate(date),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          <a href={`${window.location.origin}${record.mediaUrl}`} download={true}>下载</a>
+          {record.status === 'pending' && (
+            <Button 
+              type="primary" 
+              size="small" 
+              icon={<PlayCircleOutlined />}
+              onClick={() => handleProcessTask(record.id)}
+            >
+              手动处理
+            </Button>
+          )}
+          {record.error && (
+            <Typography.Text type="danger" ellipsis style={{ fontSize: '12px' }} title={record.error}>
+              错误: {record.error}
+            </Typography.Text>
+          )}
+        </Space>
+      ),
+    },
+  ];
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">离线任务管理</h1>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
+      <Title level={2}>离线任务管理</Title>
       
-      {/* 筛选器 */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 min-w-[120px]"
-          >
-            <option value="">全部状态</option>
-            <option value="pending">等待处理</option>
-            <option value="processing">处理中</option>
-            <option value="completed">已完成</option>
-            <option value="failed">失败</option>
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">任务类型</label>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 min-w-[120px]"
-          >
-            <option value="">全部类型</option>
-            <option value="subtitle_generation">字幕生成</option>
-            <option value="audio_extraction">音频提取</option>
-            <option value="transcription">转录任务</option>
-          </select>
-        </div>
-        
-        <div className="flex items-end">
-          <button
-            onClick={() => loadTasks()}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
+      <Card style={{ marginBottom: 24 }}>
+        <Space size="middle" style={{ marginBottom: 16 }}>
+          <Space direction="vertical" size="small">
+            <Typography.Text>状态</Typography.Text>
+            <Select 
+              style={{ width: 120 }}
+              value={statusFilter} 
+              onChange={setStatusFilter}
+              placeholder="选择状态"
+            >
+              <Option value="">全部状态</Option>
+              <Option value="pending">等待处理</Option>
+              <Option value="processing">处理中</Option>
+              <Option value="completed">已完成</Option>
+              <Option value="failed">失败</Option>
+            </Select>
+          </Space>
+          
+          <Space direction="vertical" size="small">
+            <Typography.Text>任务类型</Typography.Text>
+            <Select 
+              style={{ width: 120 }}
+              value={typeFilter} 
+              onChange={setTypeFilter}
+              placeholder="选择类型"
+            >
+              <Option value="">全部类型</Option>
+              <Option value="subtitle_generation">字幕生成</Option>
+              <Option value="audio_extraction">音频提取</Option>
+              <Option value="transcription">转录任务</Option>
+            </Select>
+          </Space>
+          
+          <Button 
+            type="primary" 
+            icon={<SyncOutlined />} 
+            onClick={loadTasks}
+            style={{ marginTop: 22 }}
           >
             刷新
-          </button>
-        </div>
-      </div>
-      
-      {/* 错误提示 */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      {/* 加载中 */}
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin h-8 w-8 border-4 border-gray-300 border-t-blue-500 rounded-full"></div>
-          <p className="mt-2 text-gray-600">加载中...</p>
-        </div>
-      ) : (
-        /* 任务列表 */
-        tasks.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">任务类型</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">视频ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">媒体URL</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task) => (
-                  <tr key={task.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span>{taskTypeNames[task.type as keyof typeof taskTypeNames] || task.type}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${taskStatusConfig[task.status].className}`}>
-                        {taskStatusConfig[task.status].name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        href={`/videos/${task.videoId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        {task.videoId}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="truncate max-w-xs" title={task.mediaUrl}>
-                        {task.mediaUrl}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {formatDate(task.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {task.status === 'pending' && (
-                        <button
-                          onClick={() => handleProcessTask(task.id)}
-                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
-                        >
-                          手动处理
-                        </button>
-                      )}
-                      {task.error && (
-                        <div className="mt-1 text-xs text-red-500">
-                          错误: {task.error}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8 bg-gray-50 rounded-md">
-            <p className="text-gray-500">暂无任务数据</p>
-          </div>
-        )
-      )}
+          </Button>
+        </Space>
+        
+        <Table 
+          columns={columns} 
+          dataSource={tasks.map(task => ({ ...task, key: task.id }))} 
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: true, showQuickJumper: true }}
+          locale={{ emptyText: '暂无任务数据' }}
+          scroll={{ x: 'max-content' }}
+        />
+      </Card>
     </div>
   );
 } 
