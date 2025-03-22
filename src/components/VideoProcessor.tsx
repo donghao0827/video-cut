@@ -12,6 +12,7 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
   const [progress, setProgress] = useState<string>('');
   const [error, setLocalError] = useState<string | null>(null);
   const [hasSubtitles, setHasSubtitles] = useState(false);
+  const [isOfflineTaskCreated, setIsOfflineTaskCreated] = useState(false);
   const { updateVideo } = useVideoStore();
   
   // 加载组件时检查视频是否已有字幕
@@ -85,30 +86,26 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
         }
       }
       
+      // 调用后端API处理字幕提取
       setProgress('正在提交处理请求...');
       
-      // 判断是否是OBS地址（以https://开头）
-      const isObsUrl = url.startsWith('https://');
+      // 调用统一的字幕生成API
+      const response = await axios.post(`/api/videos/${videoId}/generate-subtitle`, {
+        mediaUrl: url
+      });
       
-      // 根据URL类型设置不同的参数
-      const requestData = {
-        video_id: videoId
-      };
-      
-      if (isObsUrl) {
-        // 如果是OBS地址，使用media_url参数
-        Object.assign(requestData, { media_url: url });
-      } else {
-        // 否则使用media_key参数
-        // 移除开头的斜杠（如果存在）
-        const mediaKey = url.startsWith('/') ? url.substring(1) : url;
-        Object.assign(requestData, { media_key: mediaKey });
-      }
-      
-      // 调用本地字幕提取服务
-      const response = await axios.post('http://localhost:8000/api/subtitle', requestData);
-      
-      if (response.data && response.data.task_id) {
+      // 检查响应类型
+      if (response.data.taskCreated) {
+        // 后端创建了离线任务
+        setIsOfflineTaskCreated(true);
+        setProgress('离线任务已创建');
+        
+        // 在显示成功消息2秒后重置状态
+        setTimeout(() => {
+          setProgress('');
+          setIsProcessing(false);
+        }, 2000);
+      } else if (response.data.task_id) {
         // 获取任务ID并开始轮询
         const taskId = response.data.task_id;
         setProgress('正在生成字幕...0%');
@@ -142,7 +139,7 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
         } else {
           throw new Error('未获取到字幕或字幕地址');
         }
-      } else if (response.data && response.data.subtitles) {
+      } else if (response.data.subtitles) {
         // 兼容直接返回字幕的情况（旧API）
         const subtitles = response.data.subtitles;
         
@@ -190,11 +187,17 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
         </div>
       )}
       
+      {isOfflineTaskCreated && !isProcessing && !hasSubtitles && (
+        <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 rounded-md text-sm">
+          ⏱ 已创建离线任务，请等待人工处理
+        </div>
+      )}
+      
       <button
         onClick={handleProcess}
-        disabled={isProcessing}
+        disabled={isProcessing || isOfflineTaskCreated}
         className={`w-full py-2 px-4 rounded-md text-white font-medium ${
-          isProcessing
+          isProcessing || isOfflineTaskCreated
             ? 'bg-gray-400 cursor-not-allowed'
             : hasSubtitles 
               ? 'bg-blue-500 hover:bg-blue-600' 
@@ -203,9 +206,11 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
       >
         {isProcessing 
           ? (progress || '处理中...') 
-          : hasSubtitles 
-            ? '重新生成字幕' 
-            : '一键提取字幕'}
+          : isOfflineTaskCreated
+            ? '等待人工处理'
+            : hasSubtitles 
+              ? '重新生成字幕' 
+              : '一键提取字幕'}
       </button>
       
       {error && (
