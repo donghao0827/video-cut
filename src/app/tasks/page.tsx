@@ -123,8 +123,8 @@ export default function TasksPage() {
       formData.append('storageLocation', form.getFieldValue('storageLocation'));
       
       // 添加字幕文件（如果有）
-      if (subtitleFile && subtitleFile.originFileObj) {
-        formData.append('subtitleFile', subtitleFile.originFileObj);
+      if (subtitleFile) {
+        formData.append('subtitleFile', subtitleFile);
       }
       
       // 提交到API
@@ -311,7 +311,6 @@ export default function TasksPage() {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ storageLocation: '/uploads/processed' }}
         >
           {/* 当任务类型是字幕生成时，显示字幕文件上传 */}
           {currentTask?.type === 'subtitle_generation' && (
@@ -331,14 +330,6 @@ export default function TasksPage() {
               </Dragger>
             </Form.Item>
           )}
-
-          <Form.Item
-            label="存储位置"
-            name="storageLocation"
-            rules={[{ required: true, message: '请输入存储位置' }]}
-          >
-            <Input placeholder="指定视频文件的存储路径" />
-          </Form.Item>
 
           {currentTask && (
             <div style={{ marginTop: 16 }}>

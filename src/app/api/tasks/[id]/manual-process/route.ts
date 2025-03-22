@@ -1,79 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir, readFile } from 'fs/promises';
-import { join, dirname, parse } from 'path';
-import { existsSync } from 'fs';
-import { EventEmitter } from 'events';
+import { writeFile, readFile, mkdir } from 'fs/promises';
+import { join, parse } from 'path';
 import connectToDatabase from '@/lib/db/mongodb';
 import TaskModel from '@/lib/db/models/task';
 import VideoModel from '@/lib/db/models/video';
-import formidable from 'formidable';
 import fs from 'fs';
+import { getFileStoragePath } from '@/lib/utils/fileStorage';
+import os from 'os';
+import { existsSync } from 'fs';
 
-// 禁用默认body解析器，以便我们可以使用formidable处理文件上传
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const dynamic = 'force-dynamic';
+
+interface FormFile {
+  filepath: string;
+  originalFilename?: string;
+  mimetype?: string;
+  size?: number;
+}
 
 // 处理文件上传和解析表单数据
-async function parseForm(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
-  return new Promise((resolve, reject) => {
-    const form = formidable({ multiples: true });
-    
-    // 将NextRequest转换为Node的IncomingMessage
-    const nodeReq = Object.assign(new EventEmitter(), {
-      headers: req.headers,
-      method: req.method,
-      url: req.url,
-      pipe: function() { return this; }
-    });
-    
-    // 处理请求体
-    if (req.body) {
-      const reader = req.body.getReader(); // 只获取一次reader
+async function parseForm(req: NextRequest): Promise<{ fields: Record<string, string>; files: Record<string, FormFile[]> }> {
+  const formData = await req.formData();
+  const fields: Record<string, string> = {};
+  const files: Record<string, FormFile[]> = {};
+
+  // 处理表单字段和文件
+  for (const [key, value] of formData.entries()) {
+    if (typeof value !== 'string' && 'arrayBuffer' in value) {
+      // 处理文件 (Web标准File对象)
+      const file = value as unknown as {
+        name: string;
+        type: string;
+        size: number;
+        arrayBuffer: () => Promise<ArrayBuffer>;
+      };
       
-      // 处理单个数据块的函数
-      async function processChunk() {
-        try {
-          const { done, value } = await reader.read();
-          if (done) {
-            nodeReq.emit('end');
-            return;
-          }
-          
-          // 将数据发送给formidable
-          nodeReq.emit('data', Buffer.from(value));
-          
-          // 继续读取下一个数据块
-          return processChunk();
-        } catch (err) {
-          reader.releaseLock(); // 出错时释放锁
-          reject(err);
-        }
+      const tempDir = os.tmpdir();
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const tempFilePath = join(tempDir, file.name);
+      
+      // 写入临时文件
+      await writeFile(tempFilePath, buffer);
+      
+      // 创建文件对象
+      const formFile: FormFile = {
+        filepath: tempFilePath,
+        originalFilename: file.name,
+        mimetype: file.type,
+        size: file.size
+      };
+      
+      // 添加到files对象
+      if (!files[key]) {
+        files[key] = [];
       }
-      
-      // 开始处理数据流
-      processChunk().catch(err => {
-        console.error('处理请求体出错:', err);
-        reject(err);
-      });
+      files[key].push(formFile);
     } else {
-      // 如果没有请求体，直接结束
-      nodeReq.emit('end');
+      // 处理普通字段
+      fields[key] = String(value);
     }
-    
-    // 尝试解析表单数据，即使这样可能在TypeScript中显示错误
-    // @ts-expect-error - 我们知道nodeReq不是完整的IncomingMessage，但它包含formidable所需的最低属性
-    form.parse(nodeReq, (err, fields, files) => {
-      if (err) return reject(err);
-      resolve({ fields, files });
-    });
+  }
+  
+  console.log('解析表单数据:', { 
+    字段: Object.keys(fields), 
+    文件: Object.keys(files)
   });
+  
+  return { fields, files };
 }
 
 // 读取文件内容
-async function readFileBuffer(file: formidable.File): Promise<Buffer> {
+async function readFileBuffer(file: FormFile): Promise<Buffer> {
   return readFile(file.filepath);
 }
 
@@ -85,6 +82,8 @@ export async function POST(
   try {
     await connectToDatabase();
     const { id } = await params;
+    
+    console.log('处理任务:', id);
     
     // 查找任务
     const task = await TaskModel.findById(id);
@@ -105,26 +104,23 @@ export async function POST(
     }
     
     // 解析请求
-    // const { fields, files } = await parseForm(req);
-    console.log('>>>>>', await parseForm(req))
-    const storageLocation = fields.storageLocation ? fields.storageLocation.toString() : '/uploads/processed';
-    
-    // 确保存储目录存在
-    if (!existsSync(storageLocation)) {
-      await mkdir(storageLocation, { recursive: true });
-    }
+    const { fields, files } = await parseForm(req);
+    console.log('解析表单数据详情:', { 
+      字段值: fields,
+      文件数量: Object.keys(files).map(key => `${key}: ${files[key].length}个文件`)
+    });
     
     // 处理不同类型的任务
     let result;
     switch (task.type) {
       case 'subtitle_generation':
         // 处理字幕生成任务
-        result = await processSubtitleTask(task, files, storageLocation);
+        result = await processSubtitleTask(task, files, fields);
         break;
       
       case 'audio_extraction':
         // 处理音频提取任务
-        result = await processAudioTask(task, storageLocation);
+        result = await processAudioTask(task);
         break;
       
       default:
@@ -149,7 +145,7 @@ export async function POST(
 }
 
 // 处理字幕任务
-async function processSubtitleTask(task: TaskDocument, files: formidable.Files, storageLocation: string) {
+async function processSubtitleTask(task: TaskDocument, files: Record<string, FormFile[]>, fields: Record<string, string>) {
   try {
     // 检查是否有上传字幕文件
     const subtitleFileArray = files.subtitleFile;
@@ -172,12 +168,28 @@ async function processSubtitleTask(task: TaskDocument, files: formidable.Files, 
     try {
       // 尝试解析为JSON格式
       subtitles = JSON.parse(fileBuffer.toString());
-    } catch (error) {
+    } catch (e: unknown) {
       // 忽略解析错误，如果不是JSON，则保存为原始文件
+      console.log('文件不是JSON格式，按原始文件处理:', e instanceof Error ? e.message : String(e));
       // 创建字幕文件路径
       const fileExt = parse(subtitleFile.originalFilename || 'subtitle.json').ext || '.json';
       const subtitleFileName = `subtitle_${task.videoId}${fileExt}`;
-      const subtitlePath = join(storageLocation, subtitleFileName);
+      
+      // 根据文件类型选择存储位置
+      let subtitlePath;
+      if (fileExt.toLowerCase() === '.srt') {
+        // SRT文件存储在public/results目录
+        const resultsDir = join(process.cwd(), 'public', 'results');
+        subtitlePath = join(resultsDir, subtitleFileName);
+        
+        // 确保目录存在
+        if (!existsSync(resultsDir)) {
+          await mkdir(resultsDir, { recursive: true });
+        }
+      } else {
+        // 其他字幕文件存储在字幕目录
+        subtitlePath = await getFileStoragePath(subtitleFileName, 'subtitles', { isPublic: true });
+      }
       
       // 保存字幕文件
       await writeFile(subtitlePath, fileBuffer);
@@ -212,15 +224,38 @@ async function processSubtitleTask(task: TaskDocument, files: formidable.Files, 
     
     // 同时保存JSON文件
     const subtitleFileName = `subtitle_${task.videoId}.json`;
-    const subtitlePath = join(storageLocation, subtitleFileName);
+    const subtitlePath = await getFileStoragePath(subtitleFileName, 'subtitles', { isPublic: true });
     await writeFile(subtitlePath, JSON.stringify(subtitles, null, 2));
     video.subtitleUrl = subtitlePath;
+    
+    // 同时生成SRT格式文件（默认生成，或请求指定）
+    const shouldExportSrt = !fields || !fields.exportSrt || fields.exportSrt === 'true';
+    if (shouldExportSrt) {
+      // 将JSON字幕转换为SRT格式
+      const srtContent = convertJsonToSrt(subtitles);
+      const srtFileName = `subtitle_${task.videoId}.srt`;
+      
+      // 直接保存到public/results目录
+      const resultsDir = join(process.cwd(), 'public', 'results');
+      const srtPath = join(resultsDir, srtFileName);
+      
+      // 确保目录存在
+      if (!existsSync(resultsDir)) {
+        await mkdir(resultsDir, { recursive: true });
+      }
+      
+      await writeFile(srtPath, srtContent);
+      
+      // 更新结果包含SRT路径
+      task.result = { subtitles, subtitleUrl: subtitlePath, srtUrl: srtPath };
+    } else {
+      task.result = { subtitles, subtitleUrl: subtitlePath };
+    }
     
     await video.save();
     
     // 更新任务状态
     task.status = 'completed';
-    task.result = { subtitles, subtitleUrl: subtitlePath };
     task.processedAt = new Date();
     await task.save();
     
@@ -272,7 +307,7 @@ interface TaskDocument {
 }
 
 // 处理音频任务
-async function processAudioTask(task: TaskDocument, storageLocation: string) {
+async function processAudioTask(task: TaskDocument) {
   try {
     // 获取视频信息
     const video = await VideoModel.findById(task.videoId) as VideoDocument | null;
@@ -283,14 +318,11 @@ async function processAudioTask(task: TaskDocument, storageLocation: string) {
     // 创建音频文件路径 (将视频文件移动到指定位置)
     const videoPathParts = parse(task.mediaUrl);
     const audioFileName = `audio_${task.videoId}${videoPathParts.ext || '.mp3'}`;
-    const audioPath = join(storageLocation, audioFileName);
+    const audioPath = await getFileStoragePath(audioFileName, 'audios', { isPublic: true });
     
     // 如果媒体URL是本地文件路径，则复制文件到新位置
     if (!task.mediaUrl.startsWith('http')) {
       const sourcePath = task.mediaUrl.startsWith('/') ? task.mediaUrl : join(process.cwd(), task.mediaUrl);
-      
-      // 确保目标目录存在
-      await mkdir(dirname(audioPath), { recursive: true });
       
       // 复制文件
       await fs.promises.copyFile(sourcePath, audioPath);
@@ -328,4 +360,30 @@ async function processAudioTask(task: TaskDocument, storageLocation: string) {
     
     throw error;
   }
+}
+
+// 将JSON字幕数组转换为SRT格式
+function convertJsonToSrt(subtitles: Array<{ start: number; end: number; text: string }>): string {
+  return subtitles.map((item, index) => {
+    // 序号
+    const number = index + 1;
+    
+    // 时间格式化
+    const startTime = formatSrtTime(item.start);
+    const endTime = formatSrtTime(item.end);
+    
+    // SRT条目
+    return `${number}\n${startTime} --> ${endTime}\n${item.text}\n`;
+  }).join('\n');
+}
+
+// 将秒数转换为SRT格式时间 (HH:MM:SS,mmm)
+function formatSrtTime(seconds: number): string {
+  const date = new Date(seconds * 1000);
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const secs = String(date.getUTCSeconds()).padStart(2, '0');
+  const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
+  
+  return `${hours}:${minutes}:${secs},${ms}`;
 } 
