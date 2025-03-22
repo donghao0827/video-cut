@@ -8,6 +8,7 @@ export default function VideoUploader() {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   
   const { addVideo, setError } = useVideoStore();
   
@@ -29,12 +30,14 @@ export default function VideoUploader() {
     e.preventDefault();
     
     if (!file || !title) {
-      setError('Please provide a title and select a video file');
+      setError('请提供标题并选择视频文件');
       return;
     }
     
     try {
       setUploading(true);
+      setProgress(0);
+      setError(null);
       
       const formData = new FormData();
       formData.append('video', file);
@@ -53,9 +56,8 @@ export default function VideoUploader() {
       setTitle('');
       setDescription('');
       setFile(null);
-      setError(null);
     } catch (error) {
-      setError('Error uploading video');
+      setError('视频上传失败');
       console.error(error);
     } finally {
       setUploading(false);
@@ -64,11 +66,11 @@ export default function VideoUploader() {
   
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Upload New Video</h2>
+      <h2 className="text-xl font-bold mb-4">上传新视频</h2>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="title">
-            Title *
+            标题 *
           </label>
           <input
             id="title"
@@ -82,7 +84,7 @@ export default function VideoUploader() {
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="description">
-            Description
+            描述
           </label>
           <textarea
             id="description"
@@ -111,9 +113,9 @@ export default function VideoUploader() {
               </div>
             ) : (
               <div>
-                <p>Drag and drop a video file here, or click to select</p>
+                <p>拖拽视频文件到此处，或点击选择</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Supports: MP4, WebM, MOV
+                  支持格式：MP4、WebM、MOV
                 </p>
               </div>
             )}
@@ -129,7 +131,7 @@ export default function VideoUploader() {
               : 'bg-blue-600 hover:bg-blue-700'
           }`}
         >
-          {uploading ? 'Uploading...' : 'Upload Video'}
+          {uploading ? '上传中...' : '上传视频'}
         </button>
       </form>
     </div>

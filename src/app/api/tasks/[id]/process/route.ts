@@ -143,14 +143,14 @@ async function pollSubtitleStatus(taskId: string, maxAttempts = 30, intervalMs =
         // 任务完成，返回结果
         return statusData;
       } else if (statusData.status === 'failed' || statusData.status === 'error') {
-        throw new Error('Subtitle generation failed: ' + (statusData.message || '未知错误'));
+        throw new Error('字幕生成失败: ' + (statusData.message || '未知错误'));
       } else {
         // 任务仍在进行中，继续轮询
         await new Promise(resolve => setTimeout(resolve, intervalMs));
         return checkStatus();
       }
     } catch (error) {
-      console.error('Error polling subtitle status:', error);
+      console.error('轮询字幕状态出错:', error);
       throw error;
     }
   };
@@ -172,7 +172,7 @@ export async function POST(
     
     if (!task) {
       return NextResponse.json(
-        { error: 'Task not found' },
+        { error: '任务未找到' },
         { status: 404 }
       );
     }
@@ -180,7 +180,7 @@ export async function POST(
     // 检查任务是否已经处理过
     if (task.status !== 'pending') {
       return NextResponse.json(
-        { error: 'Task is not in pending status', status: task.status },
+        { error: '任务不是待处理状态', status: task.status },
         { status: 400 }
       );
     }
@@ -194,19 +194,19 @@ export async function POST(
       case 'audio_extraction':
         // 未实现的任务类型
         return NextResponse.json(
-          { error: 'Task type not implemented yet' },
+          { error: '该任务类型尚未实现' },
           { status: 501 }
         );
       default:
         return NextResponse.json(
-          { error: 'Unknown task type' },
+          { error: '未知的任务类型' },
           { status: 400 }
         );
     }
     
     return NextResponse.json({
       success: true,
-      message: 'Task processed successfully',
+      message: '任务处理成功',
       task: {
         id: task._id,
         type: task.type,
@@ -216,11 +216,11 @@ export async function POST(
       ...result
     });
   } catch (error) {
-    console.error('Error processing task:', error);
+    console.error('处理任务出错:', error);
     
     return NextResponse.json(
       { 
-        error: 'Failed to process task',
+        error: '处理任务失败',
         message: error instanceof Error ? error.message : '未知错误'
       },
       { status: 500 }

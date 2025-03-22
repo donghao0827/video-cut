@@ -63,7 +63,7 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
       
       updateVideo(response.data.video);
     } catch (error) {
-      setError('Error processing video');
+      setError('视频处理失败');
       console.error(error);
     } finally {
       setProcessing(false);
@@ -71,12 +71,12 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
   };
   
   if (!video) {
-    return <div>Video not found</div>;
+    return <div>未找到视频</div>;
   }
   
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Edit Video</h2>
+      <h2 className="text-xl font-bold mb-4">编辑视频</h2>
       
       <div className="mb-4">
         {/* 根据是否有字幕条件渲染不同的视频播放器 */}
@@ -99,13 +99,13 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
       
       <div className="mb-6">
         <div className="flex justify-between mb-2">
-          <span className="text-sm">Start Time: {formatTime(startTime)}</span>
-          <span className="text-sm">End Time: {formatTime(endTime)}</span>
+          <span className="text-sm">开始时间: {formatTime(startTime)}</span>
+          <span className="text-sm">结束时间: {formatTime(endTime)}</span>
         </div>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Trim Start
+            剪辑起点
           </label>
           <input
             type="range"
@@ -120,7 +120,7 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Trim End
+            剪辑终点
           </label>
           <input
             type="range"
@@ -144,13 +144,13 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         }`}
       >
         {processing || video.status === 'processing' 
-          ? 'Processing...' 
-          : 'Process Video'}
+          ? '处理中...' 
+          : '处理视频'}
       </button>
       
       {video.editedUrl && (
         <div className="mt-6">
-          <h3 className="text-lg font-medium mb-2">Processed Video</h3>
+          <h3 className="text-lg font-medium mb-2">处理后的视频</h3>
           <video 
             src={`${video.editedUrl}`} 
             controls 

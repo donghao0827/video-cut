@@ -12,7 +12,7 @@ export default function TranscriptViewer({ videoId, videoRef }: TranscriptViewer
   const { videos, updateVideo, setError } = useVideoStore();
   const [processing, setProcessing] = useState(false);
   
-  // Find the video from the store
+  // 从视频库中查找视频
   const video = videos.find(v => v._id === videoId);
   
   const transcribeAudio = async () => {
@@ -25,8 +25,8 @@ export default function TranscriptViewer({ videoId, videoRef }: TranscriptViewer
       
       updateVideo(response.data.video);
     } catch (error) {
-      console.error('Error transcribing audio:', error);
-      setError('Failed to transcribe audio');
+      console.error('音频转录失败:', error);
+      setError('音频转录失败');
     } finally {
       setProcessing(false);
     }
@@ -47,25 +47,25 @@ export default function TranscriptViewer({ videoId, videoRef }: TranscriptViewer
   };
   
   if (!video) {
-    return <div>Video not found</div>;
+    return <div>未找到视频</div>;
   }
   
   return (
     <div className="mt-6 p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Video Transcript</h2>
+      <h2 className="text-xl font-bold mb-4">视频转录</h2>
       
       {!video.audioUrl ? (
         <div className="text-gray-500 mb-4">
-          Extract audio first to generate a transcript
+          请先提取音频以生成转录文本
         </div>
       ) : video.transcript ? (
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Full Transcript</h3>
+          <h3 className="text-lg font-medium">完整转录</h3>
           <div className="p-4 bg-gray-50 rounded-md max-h-40 overflow-y-auto">
             {video.transcript}
           </div>
           
-          <h3 className="text-lg font-medium mt-4">Timeline</h3>
+          <h3 className="text-lg font-medium mt-4">时间轴</h3>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {video.timestamps?.map((timestamp, index) => (
               <div 
@@ -90,7 +90,7 @@ export default function TranscriptViewer({ videoId, videoRef }: TranscriptViewer
               processing ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
-            {processing ? 'Processing...' : 'Generate Transcript'}
+            {processing ? '处理中...' : '生成转录文本'}
           </button>
         </div>
       )}

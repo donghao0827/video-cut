@@ -10,7 +10,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-gray-50">
-      <h1 className="text-3xl font-bold text-center mb-8">Video Cutter</h1>
+      <h1 className="text-3xl font-bold text-center mb-8">视频剪辑工具</h1>
       
       {error && (
         <div className="w-full max-w-4xl mb-6 p-4 bg-red-100 text-red-800 rounded-md">
@@ -29,9 +29,9 @@ export default function Home() {
             <VideoEditor videoId={currentVideo._id as string} />
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-md text-center py-16">
-              <h2 className="text-xl font-bold mb-4">No Video Selected</h2>
+              <h2 className="text-xl font-bold mb-4">未选择视频</h2>
               <p className="text-gray-600">
-                Select a video from the list to edit it.
+                从列表中选择一个视频进行编辑。
               </p>
             </div>
           )}

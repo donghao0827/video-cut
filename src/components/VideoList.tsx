@@ -12,8 +12,8 @@ export default function VideoList() {
         const response = await axios.get('/api/videos');
         setVideos(response.data.videos);
       } catch (error) {
-        console.error('Error fetching videos:', error);
-        setError('Failed to fetch videos');
+        console.error('获取视频列表失败:', error);
+        setError('获取视频列表失败');
       } finally {
         setLoading(false);
       }
@@ -25,7 +25,7 @@ export default function VideoList() {
   if (isLoading) {
     return (
       <div className="p-4 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">Your Videos</h2>
+        <h2 className="text-xl font-bold mb-4">您的视频</h2>
         <div className="flex justify-center items-center py-10">
           <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent"></div>
         </div>
@@ -36,9 +36,9 @@ export default function VideoList() {
   if (videos.length === 0) {
     return (
       <div className="p-4 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4">Your Videos</h2>
+        <h2 className="text-xl font-bold mb-4">您的视频</h2>
         <div className="py-8 text-center text-gray-500">
-          <p>No videos found. Upload a new video to get started!</p>
+          <p>未找到视频。上传新视频开始使用！</p>
         </div>
       </div>
     );
@@ -46,7 +46,7 @@ export default function VideoList() {
   
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Your Videos</h2>
+      <h2 className="text-xl font-bold mb-4">您的视频</h2>
       <div className="grid gap-4">
         {videos.map((video) => (
           <div
