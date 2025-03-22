@@ -24,7 +24,7 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
         setHasSubtitles(videoData.hasSubtitles || 
           (videoData.subtitles && videoData.subtitles.length > 0));
       } catch (error) {
-        console.error('Error checking subtitles status:', error);
+        console.error('检查字幕状态出错:', error);
       }
     };
     
@@ -164,7 +164,7 @@ export default function VideoProcessor({ videoId, videoUrl }: VideoProcessorProp
         throw new Error('无效的响应数据，未包含任务ID或字幕');
       }
     } catch (error: unknown) {
-      console.error('Error during video processing:', error);
+      console.error('视频处理过程中出错:', error);
       const errorMessage = error instanceof Error ? error.message : '视频处理失败';
       setLocalError(errorMessage);
       setIsProcessing(false);

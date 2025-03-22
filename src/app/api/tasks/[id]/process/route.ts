@@ -26,7 +26,7 @@ async function processSubtitleGenerationTask(task: any) {
     
     // 如果不存在视频地址，则失败
     if (!videoData.url && !task.mediaUrl) {
-      throw new Error('Video URL not found');
+      throw new Error('未找到视频URL');
     }
     
     const url = task.mediaUrl || videoData.url;
@@ -57,7 +57,7 @@ async function processSubtitleGenerationTask(task: any) {
     const response = await axios.post('http://localhost:8000/api/subtitle', requestData);
     
     if (!response.data || (!response.data.task_id && !response.data.subtitles)) {
-      throw new Error('Invalid response from subtitle API');
+      throw new Error('字幕API返回的数据无效');
     }
     
     // 更新任务状态为处理中
@@ -86,9 +86,9 @@ async function processSubtitleGenerationTask(task: any) {
         task.processedAt = new Date();
         await task.save();
         
-        return { success: true, message: 'Subtitle generation completed' };
+        return { success: true, message: '字幕生成完成' };
       } else {
-        throw new Error('Failed to get subtitles from task');
+        throw new Error('未能从任务中获取字幕');
       }
     } else if (response.data.subtitles) {
       // 直接返回字幕
@@ -106,17 +106,17 @@ async function processSubtitleGenerationTask(task: any) {
       task.processedAt = new Date();
       await task.save();
       
-      return { success: true, message: 'Subtitle generation completed' };
+      return { success: true, message: '字幕生成完成' };
     }
     
     // 默认返回，理论上不会到达这里
-    return { success: false, message: 'Unknown result' };
+    return { success: false, message: '未知结果' };
   } catch (error) {
-    console.error('Error processing subtitle generation task:', error);
+    console.error('处理字幕生成任务出错:', error);
     
     // 更新任务状态为失败
     task.status = 'failed';
-    task.error = error instanceof Error ? error.message : 'Unknown error';
+    task.error = error instanceof Error ? error.message : '未知错误';
     task.processedAt = new Date();
     await task.save();
     
@@ -131,7 +131,7 @@ async function pollSubtitleStatus(taskId: string, maxAttempts = 30, intervalMs =
   const checkStatus = async (): Promise<SubtitleResult> => {
     try {
       if (attempts >= maxAttempts) {
-        throw new Error('Subtitle generation timeout');
+        throw new Error('字幕生成超时');
       }
       
       attempts++;
@@ -143,7 +143,7 @@ async function pollSubtitleStatus(taskId: string, maxAttempts = 30, intervalMs =
         // 任务完成，返回结果
         return statusData;
       } else if (statusData.status === 'failed' || statusData.status === 'error') {
-        throw new Error('Subtitle generation failed: ' + (statusData.message || 'Unknown error'));
+        throw new Error('Subtitle generation failed: ' + (statusData.message || '未知错误'));
       } else {
         // 任务仍在进行中，继续轮询
         await new Promise(resolve => setTimeout(resolve, intervalMs));
@@ -221,7 +221,7 @@ export async function POST(
     return NextResponse.json(
       { 
         error: 'Failed to process task',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : '未知错误'
       },
       { status: 500 }
     );

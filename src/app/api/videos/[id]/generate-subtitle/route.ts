@@ -90,7 +90,7 @@ export async function POST(
     
     if (!mediaUrl) {
       return NextResponse.json(
-        { error: 'Missing required field: mediaUrl' },
+        { error: '缺少必填字段: mediaUrl' },
         { status: 400 }
       );
     }
@@ -106,11 +106,11 @@ export async function POST(
       return NextResponse.json(result);
     }
   } catch (error) {
-    console.error('Error generating subtitle:', error);
+    console.error('生成字幕时出错:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to generate subtitle',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: '生成字幕失败',
+        message: error instanceof Error ? error.message : '未知错误'
       },
       { status: 500 }
     );

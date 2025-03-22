@@ -72,9 +72,9 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    console.error('获取任务列表出错:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch tasks' },
+      { error: '获取任务列表失败' },
       { status: 500 }
     );
   }
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     // 验证必填字段
     if (!type || !videoId || !mediaUrl) {
       return NextResponse.json(
-        { error: 'Missing required fields', success: false },
+        { error: '缺少必填字段', success: false },
         { status: 400 }
       );
     }
@@ -119,9 +119,9 @@ export async function POST(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error creating task:', error);
+    console.error('创建任务出错:', error);
     return NextResponse.json(
-      { error: 'Failed to create task', success: false },
+      { error: '创建任务失败', success: false },
       { status: 500 }
     );
   }
