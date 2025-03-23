@@ -11,16 +11,22 @@ interface Video extends IVideo {
 
 interface VideoStore {
   videos: Video[];
+  currentVideo: Video | null;
+  setCurrentVideo: (video: Video | null) => void;
   setVideos: (videos: Video[]) => void;
   addVideo: (video: Video) => void;
   updateVideo: (video: Video) => void;
   removeVideo: (id: string) => void;
   error: string | null;
   setError: (error: string | null) => void;
+  isLoading: boolean;
+  setLoading: (isLoading: boolean) => void;
 }
 
 const useVideoStore = create<VideoStore>((set) => ({
   videos: [],
+  currentVideo: null,
+  setCurrentVideo: (video) => set({ currentVideo: video }),
   setVideos: (videos) => set({ videos }),
   addVideo: (video) => 
     set((state) => ({ videos: [...state.videos, video] })),
@@ -34,6 +40,8 @@ const useVideoStore = create<VideoStore>((set) => ({
     })),
   error: null,
   setError: (error) => set({ error }),
+  isLoading: false,
+  setLoading: (isLoading) => set({ isLoading }),
 }));
 
 export default useVideoStore; 

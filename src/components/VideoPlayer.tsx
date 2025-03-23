@@ -76,7 +76,7 @@ export default function VideoPlayer({ videoUrl, subtitleUrl, title }: VideoPlaye
         <video
           ref={videoRef}
           src={videoUrl}
-          className="w-full rounded-lg"
+          className="w-full rounded-lg h-[300px]"
           controls={showControls}
           controlsList="nodownload"
         />

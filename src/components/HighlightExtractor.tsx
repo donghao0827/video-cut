@@ -140,15 +140,6 @@ export default function HighlightExtractor({ videoId }: HighlightExtractorProps)
               ? '提取高价值片段' 
               : '请先生成字幕'}
         </button>
-        
-        {video?.highlights && video.highlights.length > 0 && (
-          <button
-            onClick={toggleHighlights}
-            className="py-2 px-4 rounded-md text-white font-medium bg-green-600 hover:bg-green-700"
-          >
-            {showHighlights ? '隐藏高价值片段' : '显示高价值片段'}
-          </button>
-        )}
       </div>
       
       {error && (
@@ -180,7 +171,7 @@ export default function HighlightExtractor({ videoId }: HighlightExtractorProps)
                         videoElement.play();
                       }
                     }}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer"
                   >
                     播放片段
                   </button>
