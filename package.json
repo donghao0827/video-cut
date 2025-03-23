@@ -35,6 +35,7 @@
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.8",
     "react-icons": "^5.5.0",
+    "subtitle": "^4.2.2-alpha.0",
     "uuid": "^11.1.0",
     "zustand": "^5.0.3"
   },
@@ -44,6 +45,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/subtitle": "^2.0.6",
     "eslint": "^9",
     "eslint-config-next": "15.2.3",
     "tailwindcss": "^4",

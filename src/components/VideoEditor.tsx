@@ -1,22 +1,48 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { useVideoStore } from '@/lib/store/videoStore';
+import useVideoStore from '@/lib/stores/videoStore';
 // import AudioExtractor from './AudioExtractor';
 // import TranscriptViewer from './TranscriptViewer';
 import VideoProcessor from './VideoProcessor';
 import VideoPlayer from './VideoPlayer';
+import HighlightExtractor from './HighlightExtractor';
 
 export default function VideoEditor({ videoId }: { videoId: string }) {
-  const { videos, updateVideo, setError } = useVideoStore();
+  const { videos, updateVideo, setError, setVideos } = useVideoStore();
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
   
-  // Find the video from the store
-  const video = videos.find(v => v._id === videoId);
+  // 在组件加载时获取视频数据
+  useEffect(() => {
+    async function fetchVideoData() {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/videos/${videoId}`);
+        // 如果videos为空，添加当前视频
+        if (videos.length === 0) {
+          setVideos([response.data]);
+        } else {
+          // 更新现有视频
+          updateVideo({...response.data, id: response.data._id || response.data.id});
+        }
+      } catch (error) {
+        console.error('获取视频数据失败:', error);
+        setError('无法加载视频数据');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchVideoData();
+  }, [videoId, setVideos, updateVideo, setError, videos.length]);
+  
+  // Find the video from the store - 同时兼容id和_id字段
+  const video = videos.find(v => v.id === videoId || v._id === videoId);
   
   useEffect(() => {
     if (videoRef.current && video) {
@@ -61,7 +87,7 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         endTime,
       });
       
-      updateVideo(response.data.video);
+      updateVideo({...response.data.video, id: response.data.video._id || response.data.video.id});
     } catch (error) {
       setError('视频处理失败');
       console.error(error);
@@ -70,8 +96,12 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
     }
   };
   
+  if (loading) {
+    return <div className="p-4">正在加载视频数据...</div>;
+  }
+  
   if (!video) {
-    return <div>未找到视频</div>;
+    return <div className="p-4">未找到视频，请确认视频ID是否正确</div>;
   }
   
   return (
@@ -166,6 +196,8 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         </p>
         <VideoProcessor videoId={videoId} />
       </div>
+      
+      <HighlightExtractor videoId={videoId} />
     </div>
   );
 } 

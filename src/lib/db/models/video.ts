@@ -7,6 +7,14 @@ export interface ISubtitle {
   text: string;
 }
 
+// 高价值片段接口
+export interface IHighlight {
+  start: number;
+  end: number;
+  text: string;
+  reason: string;
+}
+
 // 视频接口
 export interface IVideo {
   title: string;
@@ -18,6 +26,7 @@ export interface IVideo {
   obsAudioUrl?: string;
   hasSubtitles?: boolean;
   subtitleUrl?: string;
+  highlights?: IHighlight[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +52,14 @@ const VideoSchema = new Schema<IVideoDocument>(
     obsAudioUrl: { type: String },
     hasSubtitles: { type: Boolean, default: false },
     subtitleUrl: { type: String },
+    highlights: [
+      {
+        start: { type: Number, required: true },
+        end: { type: Number, required: true },
+        text: { type: String, required: true },
+        reason: { type: String, required: true },
+      },
+    ],
   },
   {
     timestamps: true, // 添加 createdAt 和 updatedAt 字段
