@@ -97,7 +97,7 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         )}
       </div>
       
-      <div className="mb-6">
+      {/* <div className="mb-6">
         <div className="flex justify-between mb-2">
           <span className="text-sm">开始时间: {formatTime(startTime)}</span>
           <span className="text-sm">结束时间: {formatTime(endTime)}</span>
@@ -146,7 +146,7 @@ export default function VideoEditor({ videoId }: { videoId: string }) {
         {processing || video.status === 'processing' 
           ? '处理中...' 
           : '处理视频'}
-      </button>
+      </button> */}
       
       {video.editedUrl && (
         <div className="mt-6">

@@ -177,10 +177,13 @@ async function processSubtitleTask(task: TaskDocument, files: Record<string, For
       
       // 根据文件类型选择存储位置
       let subtitlePath;
+      let subtitleUrlForDb; // 存入数据库的相对路径
+      
       if (fileExt.toLowerCase() === '.srt') {
         // SRT文件存储在public/results目录
         const resultsDir = join(process.cwd(), 'public', 'results');
         subtitlePath = join(resultsDir, subtitleFileName);
+        subtitleUrlForDb = `/results/${subtitleFileName}`; // 相对URL路径
         
         // 确保目录存在
         if (!existsSync(resultsDir)) {
@@ -189,26 +192,28 @@ async function processSubtitleTask(task: TaskDocument, files: Record<string, For
       } else {
         // 其他字幕文件存储在字幕目录
         subtitlePath = await getFileStoragePath(subtitleFileName, 'subtitles', { isPublic: true });
+        // 将绝对路径转换为相对URL
+        subtitleUrlForDb = `/uploads/subtitles/${subtitleFileName}`;
       }
       
       // 保存字幕文件
       await writeFile(subtitlePath, fileBuffer);
       
-      // 更新视频记录
-      video.subtitleUrl = subtitlePath;
+      // 更新视频记录（使用相对路径）
+      video.subtitleUrl = subtitleUrlForDb;
       video.hasSubtitles = true;
       await video.save();
       
       // 更新任务状态
       task.status = 'completed';
-      task.result = { subtitleUrl: subtitlePath };
+      task.result = { subtitleUrl: subtitleUrlForDb };
       task.processedAt = new Date();
       await task.save();
       
       return { 
         success: true, 
         message: '字幕文件已保存', 
-        subtitleUrl: subtitlePath,
+        subtitleUrl: subtitleUrlForDb,
         task: {
           id: task._id,
           type: task.type,
@@ -226,7 +231,10 @@ async function processSubtitleTask(task: TaskDocument, files: Record<string, For
     const subtitleFileName = `subtitle_${task.videoId}.json`;
     const subtitlePath = await getFileStoragePath(subtitleFileName, 'subtitles', { isPublic: true });
     await writeFile(subtitlePath, JSON.stringify(subtitles, null, 2));
-    video.subtitleUrl = subtitlePath;
+    
+    // 保存相对URL到数据库
+    const subtitleUrlForDb = `/uploads/subtitles/${subtitleFileName}`;
+    video.subtitleUrl = subtitleUrlForDb;
     
     // 同时生成SRT格式文件（默认生成，或请求指定）
     const shouldExportSrt = !fields || !fields.exportSrt || fields.exportSrt === 'true';
@@ -246,10 +254,13 @@ async function processSubtitleTask(task: TaskDocument, files: Record<string, For
       
       await writeFile(srtPath, srtContent);
       
+      // SRT文件的相对URL
+      const srtUrlForDb = `/results/${srtFileName}`;
+      
       // 更新结果包含SRT路径
-      task.result = { subtitles, subtitleUrl: subtitlePath, srtUrl: srtPath };
+      task.result = { subtitles, subtitleUrl: subtitleUrlForDb, srtUrl: srtUrlForDb };
     } else {
-      task.result = { subtitles, subtitleUrl: subtitlePath };
+      task.result = { subtitles, subtitleUrl: subtitleUrlForDb };
     }
     
     await video.save();
@@ -262,7 +273,7 @@ async function processSubtitleTask(task: TaskDocument, files: Record<string, For
     return { 
       success: true, 
       message: '字幕已保存', 
-      subtitleUrl: subtitlePath,
+      subtitleUrl: subtitleUrlForDb,
       task: {
         id: task._id,
         type: task.type,
@@ -320,6 +331,9 @@ async function processAudioTask(task: TaskDocument) {
     const audioFileName = `audio_${task.videoId}${videoPathParts.ext || '.mp3'}`;
     const audioPath = await getFileStoragePath(audioFileName, 'audios', { isPublic: true });
     
+    // 生成相对URL路径
+    const audioUrlForDb = `/uploads/audios/${audioFileName}`;
+    
     // 如果媒体URL是本地文件路径，则复制文件到新位置
     if (!task.mediaUrl.startsWith('http')) {
       const sourcePath = task.mediaUrl.startsWith('/') ? task.mediaUrl : join(process.cwd(), task.mediaUrl);
@@ -329,19 +343,19 @@ async function processAudioTask(task: TaskDocument) {
     }
     
     // 更新视频记录
-    video.audioUrl = audioPath;
+    video.audioUrl = audioUrlForDb;
     await video.save();
     
     // 更新任务状态
     task.status = 'completed';
-    task.result = { audioUrl: audioPath };
+    task.result = { audioUrl: audioUrlForDb };
     task.processedAt = new Date();
     await task.save();
     
     return { 
       success: true, 
       message: '音频已处理', 
-      audioUrl: audioPath,
+      audioUrl: audioUrlForDb,
       task: {
         id: task._id,
         type: task.type,
