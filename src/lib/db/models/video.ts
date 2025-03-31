@@ -15,6 +15,22 @@ export interface IHighlight {
   reason: string;
 }
 
+// 视频片段接口
+export interface IClip {
+  id: string;
+  url: string;
+  start: number;
+  end: number;
+  text: string;
+  reason?: string;
+  duration: number;
+  sourceVideoId?: string;
+  sourceVideoTitle?: string;
+  fileSize?: number;
+  resolution?: string;
+  createdAt: Date;
+}
+
 // 视频接口
 export interface IVideo {
   title: string;
@@ -27,6 +43,7 @@ export interface IVideo {
   hasSubtitles?: boolean;
   subtitleUrl?: string;
   highlights?: IHighlight[];
+  clips?: IClip[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,9 +77,29 @@ const VideoSchema = new Schema<IVideoDocument>(
         reason: { type: String, required: true },
       },
     ],
+    clips: {
+      type: [
+        {
+          id: { type: String, required: true },
+          url: { type: String, required: true },
+          start: { type: Number, required: true },
+          end: { type: Number, required: true },
+          text: { type: String, required: true },
+          reason: { type: String },
+          duration: { type: Number, required: true },
+          sourceVideoId: { type: String },
+          sourceVideoTitle: { type: String },
+          fileSize: { type: Number },
+          resolution: { type: String },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true, // 添加 createdAt 和 updatedAt 字段
+    strict: false,  // 允许存储Schema中未定义的字段，避免验证错误
   }
 );
 
